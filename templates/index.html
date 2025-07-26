@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Tracker</title>
+</head>
+<body>
+    <h1>Email Sent & Received Counter</h1>
+
+    {% if sent_count is not none and received_count is not none %}
+        <p><strong>Emails Received:</strong> {{ received_count }}</p>
+        <p><strong>Emails Sent:</strong> {{ sent_count }}</p>
+    {% else %}
+        <a href="/login">Login with Google</a>
+    {% endif %}
+</body>
+</html>

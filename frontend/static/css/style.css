@@ -1,0 +1,47 @@
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f4f8fb;
+    margin: 0;
+    padding: 0;
+    color: #222;
+}
+header {
+    background: #1a73e8;
+    color: #fff;
+    padding: 1.5rem 2rem;
+    text-align: center;
+}
+main {
+    max-width: 800px;
+    margin: 2rem auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 2rem;
+}
+#eco-score {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+#charts {
+    margin-bottom: 2rem;
+}
+#leaderboard {
+    background: #e3f2fd;
+    border-radius: 6px;
+    padding: 1rem;
+}
+#leaderboard h3 {
+    margin-top: 0;
+}
+#leaderboardList {
+    list-style: none;
+    padding: 0;
+}
+#leaderboardList li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #bbdefb;
+}
+#leaderboardList li:last-child {
+    border-bottom: none;
+} 
