@@ -1,14 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Email Tracker</title>
+    <title>Email & Drive Tracker</title>
 </head>
 <body>
-    <h1>Email Sent & Received Counter</h1>
+    <h1>Email & Drive Usage Tracker</h1>
 
     {% if sent_count is not none and received_count is not none %}
+        <div style="text-align: right; margin-bottom: 20px;">
+            <a href="/logout" style="background: #ff4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Logout</a>
+        </div>
+        
+        <h2>User Information</h2>
+        <p><strong>Name:</strong> {{ user_name }}</p>
+        <p><strong>Email:</strong> {{ user_email }}</p>
+        
+        <h2>Email Statistics</h2>
         <p><strong>Emails Received:</strong> {{ received_count }}</p>
         <p><strong>Emails Sent:</strong> {{ sent_count }}</p>
+        
+        <h2>Google Drive Statistics</h2>
+        <p><strong>Drive Storage Used:</strong> {{ drive_storage_gb }} GB</p>
+
+        <h2>Monthly Email Stats (2024 Jan-Jun)</h2>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <tr>
+                <th>Month</th>
+                <th>Sent</th>
+                <th>Received</th>
+            </tr>
+            {% for stat in monthly_stats %}
+            <tr>
+                <td>{{ stat.month }}</td>
+                <td>{{ stat.sent }}</td>
+                <td>{{ stat.received }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     {% else %}
         <a href="/login">Login with Google</a>
     {% endif %}
