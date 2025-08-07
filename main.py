@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from google_auth_oauthlib.flow import Flow
 import requests
 from calendar import monthrange
@@ -13,6 +14,7 @@ import json
 load_dotenv()
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -212,6 +214,24 @@ def login():
     auth_url, _ = flow.authorization_url(prompt='select_account', include_granted_scopes='true')
     return RedirectResponse(auth_url)
 
+@app.get("/dashboard")
+def dashboard(request: Request):
+    # Check if user is logged in via cookie
+    access_token = request.cookies.get("access_token")
+    
+    if access_token:
+        # User is logged in, get data from token
+        user_data = get_user_data_from_token(access_token)
+        if user_data:
+            return templates.TemplateResponse("dashboard.html", {
+                "request": request,
+                **user_data,
+                "error": None
+            })
+    
+    # User not logged in, redirect to home
+    return RedirectResponse("/")
+
 @app.get("/callback")
 def callback(request: Request):
     code = request.query_params.get("code")
@@ -244,14 +264,8 @@ def callback(request: Request):
     # Get user data
     user_data = get_user_data_from_token(access_token)
     
-    # Create response with cookie
-    response = templates.TemplateResponse("index.html", {
-        "request": request,
-        **user_data,
-        "error": None
-    })
-    
-    # Set cookie with access token (in production, use secure cookies)
+    # Create response with cookie and redirect to dashboard
+    response = RedirectResponse("/dashboard")
     response.set_cookie(key="access_token", value=access_token, max_age=3600)  # 1 hour
     
     return response
