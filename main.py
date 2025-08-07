@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import RedirectResponse
@@ -110,59 +110,69 @@ def get_user_data_from_token(access_token):
         except Exception:
             drive_storage_gb = 0
     
-    # Get monthly stats
+    # Get monthly stats for last 12 months including current month
     monthly_stats = []
-    for year in [2024, 2025]:
-        start_month = 1 if year == 2024 else 1
-        end_month = 12 if year == 2024 else 6
-        for month in range(start_month, end_month + 1):
-            first_day = datetime(year, month, 1, tzinfo=timezone.utc)
-            last_day_num = monthrange(year, month)[1]
-            last_day = datetime(year, month, last_day_num, 23, 59, 59, tzinfo=timezone.utc)
-            first_day_unix = int(first_day.timestamp())
-            last_day_unix = int(last_day.timestamp())
-            
-            # Received
-            received_query = f"in:inbox after:{first_day_unix} before:{last_day_unix}"
-            received_count = 0
-            next_page_token = None
-            while True:
-                params = {"q": received_query, "maxResults": 500}
-                if next_page_token:
-                    params["pageToken"] = next_page_token
-                inbox_response = requests.get(inbox_url, headers=headers, params=params)
-                if inbox_response.status_code != 200:
-                    break
-                inbox_json = inbox_response.json()
-                messages = inbox_json.get("messages", [])
-                received_count += len(messages)
-                next_page_token = inbox_json.get("nextPageToken")
-                if not next_page_token:
-                    break
-            
-            # Sent
-            sent_query = f"in:sent after:{first_day_unix} before:{last_day_unix}"
-            sent_count = 0
-            next_page_token = None
-            while True:
-                params = {"q": sent_query, "maxResults": 500}
-                if next_page_token:
-                    params["pageToken"] = next_page_token
-                sent_response = requests.get(inbox_url, headers=headers, params=params)
-                if sent_response.status_code != 200:
-                    break
-                sent_json = sent_response.json()
-                messages = sent_json.get("messages", [])
-                sent_count += len(messages)
-                next_page_token = sent_json.get("nextPageToken")
-                if not next_page_token:
-                    break
-            
-            monthly_stats.append({
-                "month": first_day.strftime("%Y-%m"),
-                "sent": sent_count,
-                "received": received_count
-            })
+    current_date = datetime.now(timezone.utc)
+    
+    for i in range(11, -1, -1):  # 11 to 0 (12 months backwards)
+        # Calculate the date for this month
+        target_date = current_date.replace(day=1) - timedelta(days=i*30)
+        year = target_date.year
+        month = target_date.month
+        
+        # Get first and last day of the month
+        first_day = datetime(year, month, 1, tzinfo=timezone.utc)
+        last_day_num = monthrange(year, month)[1]
+        last_day = datetime(year, month, last_day_num, 23, 59, 59, tzinfo=timezone.utc)
+        first_day_unix = int(first_day.timestamp())
+        last_day_unix = int(last_day.timestamp())
+        
+        # Received emails for this month
+        received_query = f"in:inbox after:{first_day_unix} before:{last_day_unix}"
+        received_count = 0
+        next_page_token = None
+        while True:
+            params = {"q": received_query, "maxResults": 500}
+            if next_page_token:
+                params["pageToken"] = next_page_token
+            inbox_response = requests.get(inbox_url, headers=headers, params=params)
+            if inbox_response.status_code != 200:
+                break
+            inbox_json = inbox_response.json()
+            messages = inbox_json.get("messages", [])
+            received_count += len(messages)
+            next_page_token = inbox_json.get("nextPageToken")
+            if not next_page_token:
+                break
+        
+        # Sent emails for this month
+        sent_query = f"in:sent after:{first_day_unix} before:{last_day_unix}"
+        sent_count = 0
+        next_page_token = None
+        while True:
+            params = {"q": sent_query, "maxResults": 500}
+            if next_page_token:
+                params["pageToken"] = next_page_token
+            sent_response = requests.get(inbox_url, headers=headers, params=params)
+            if sent_response.status_code != 200:
+                break
+            sent_json = sent_response.json()
+            messages = sent_json.get("messages", [])
+            sent_count += len(messages)
+            next_page_token = sent_json.get("nextPageToken")
+            if not next_page_token:
+                break
+        
+        # Format month name
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        month_name = month_names[month - 1]
+        
+        monthly_stats.append({
+            "month": f"{month_name} {year}",
+            "sent": sent_count,
+            "received": received_count
+        })
     
     return {
         "user_name": user_name,

@@ -22,10 +22,105 @@
             color: #333;
         }
 
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 2rem 0;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 2rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: #111827;
+        }
+
+        .sidebar-logo .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: #16a34a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .sidebar-nav {
+            padding: 0 0.75rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.75rem 0.875rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .nav-item:hover {
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        .nav-item.active {
+            background: #16a34a;
+            color: white;
+        }
+
+        .nav-item.active:hover {
+            background: #15803d;
+        }
+
+        .nav-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            margin-left: 240px;
+        }
+
         .dashboard-container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 1.5rem;
         }
 
         .back-home {
@@ -160,29 +255,42 @@
             background: #fef2f2;
         }
 
-        .emissions-banner {
+
+
+        .banners-container {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .emissions-banner, .storage-banner {
+            flex: 1;
             background: linear-gradient(135deg, #22c55e, #16a34a);
             border-radius: 16px;
             padding: 2rem;
             text-align: center;
             color: white;
-            margin-bottom: 2rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
-        .emissions-banner h2 {
+        .emissions-banner h2, .storage-banner h2 {
             font-size: 1.25rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
         }
 
-        .emissions-value {
+        .emissions-value, .storage-value {
             font-size: 3.75rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
 
-        .emissions-label {
+        .emissions-label, .storage-label {
             color: #bbf7d0;
             font-size: 1rem;
         }
@@ -301,7 +409,21 @@
         }
 
         @media (max-width: 768px) {
-            .dashboard-container {
+            .dashboard-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 1rem 0;
+            }
+
+            .main-content {
+                margin-left: 0;
                 padding: 1rem;
             }
 
@@ -322,7 +444,12 @@
                 align-items: flex-start;
             }
 
-            .emissions-value {
+            .banners-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .emissions-value, .storage-value {
                 font-size: 2.5rem;
             }
 
@@ -333,85 +460,109 @@
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <a href="/" class="back-home">
-            ← Back to Home
-        </a>
-
-        <div class="header">
-            <div class="header-logo">
-                <div class="logo-icon">Z</div>
-                <span>Emissions Dashboard</span>
-            </div>
-            
-            <div class="month-navigation">
-                <button class="nav-btn" onclick="navigateMonth('prev')">
-                    ←
-                </button>
-                <span class="current-month" id="currentMonth">July 2022</span>
-                <button class="nav-btn" onclick="navigateMonth('next')">
-                    →
-                </button>
-            </div>
-
-            <div class="user-info">
-                <div class="user-details">
-                    <div class="user-name">{{ user_name }}</div>
-                    <div class="user-email">{{ user_email }}</div>
+    <div class="dashboard-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="/static/transparent_logo2.png" alt="ZeroPrint" style="width: 28px; height: 28px; object-fit: contain;">
+                    <span>ZeroPrint</span>
                 </div>
-                <div class="user-avatar">
-                    {{ user_name[0] if user_name else 'U' }}
-                </div>
-                <a href="/logout" class="logout-btn">
-                    🚪 Logout
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item active">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
                 </a>
-            </div>
+                <a href="/emissions" class="nav-item">
+                    <span class="nav-icon">🌳</span>
+                    Emissions
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    Settings
+                </a>
+            </nav>
         </div>
 
-        <div class="emissions-banner">
-            <h2>Current CO2 Emissions</h2>
-            <div class="emissions-value">{{ (received_count + sent_count) * 0.004 if received_count is not none and sent_count is not none else 0 }} kgs</div>
-            <div class="emissions-label">CO₂ equivalent (4g per email)</div>
-        </div>
+        <div class="main-content">
+            <a href="/" class="back-home">
+                ← Back to Home
+            </a>
 
-        <div class="chart-container">
-            <div class="chart-header">
-                <h3 class="chart-title">Email Emissions Over Time</h3>
-                <div class="time-buttons">
-                    <button class="time-btn active" onclick="switchTimeframe('daily')">Daily</button>
-                    <button class="time-btn" onclick="switchTimeframe('weekly')">Weekly</button>
-                    <button class="time-btn" onclick="switchTimeframe('monthly')">Monthly</button>
+            <div class="header">
+                <div class="header-logo">
+                    <img src="/static/transparent_logo2.png" alt="ZeroPrint" style="width: 40px; height: 40px; object-fit: contain;">
+                    <span>Emissions Dashboard</span>
+                </div>
+                
+              
+
+                <div class="user-info">
+                    <div class="user-details">
+                        <div class="user-name">{{ user_name }}</div>
+                        <div class="user-email">{{ user_email }}</div>
+                    </div>
+                    <div class="user-avatar">
+                        {{ user_name[0] if user_name else 'U' }}
+                    </div>
+                    <a href="/logout" class="logout-btn">
+                        🚪 Logout
+                    </a>
                 </div>
             </div>
-            <div class="chart-wrapper">
-                <canvas id="emissionsChart"></canvas>
-            </div>
-        </div>
 
-        <div class="monthly-stats">
-            <h2>Monthly Email Statistics & Emissions</h2>
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        <th>Month</th>
-                        <th>Sent</th>
-                        <th>Received</th>
-                        <th>Total Emails</th>
-                        <th>CO₂ (kg)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for stat in monthly_stats %}
-                    <tr>
-                        <td class="month-cell">{{ stat.month }}</td>
-                        <td>{{ stat.sent }}</td>
-                        <td>{{ stat.received }}</td>
-                        <td class="total-cell">{{ stat.sent + stat.received }}</td>
-                        <td class="total-cell">{{ "%.3f"|format((stat.sent + stat.received) * 0.004) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="banners-container">
+                <div class="emissions-banner">
+                    <h2>Current Month's CO2 Emissions</h2>
+                    <div class="emissions-value">{{ (received_count + sent_count) * 0.004 if received_count is not none and sent_count is not none else 0 }} kgs</div>
+                    <div class="emissions-label">CO₂ equivalent (4g per email)</div>
+                </div>
+                <div class="storage-banner">
+                    <h2>Google Drive Storage</h2>
+                    <div class="storage-value">{{ "%.2f"|format(drive_storage_gb) if drive_storage_gb is not none else 0 }} GB</div>
+                    <div class="storage-label">Used storage space</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Email Emissions Over Time</h3>
+                    <div class="time-buttons">
+                        <button class="time-btn active" onclick="switchTimeframe('daily')">Daily</button>
+                        <button class="time-btn" onclick="switchTimeframe('weekly')">Weekly</button>
+                        <button class="time-btn" onclick="switchTimeframe('monthly')">Monthly</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="emissionsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="monthly-stats">
+                <h2>Monthly Email Statistics & Emissions</h2>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Sent</th>
+                            <th>Received</th>
+                            <th>Total Emails</th>
+                            <th>CO₂ (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in monthly_stats %}
+                        <tr>
+                            <td class="month-cell">{{ stat.month }}</td>
+                            <td>{{ stat.sent }}</td>
+                            <td>{{ stat.received }}</td>
+                            <td class="total-cell">{{ stat.sent + stat.received }}</td>
+                            <td class="total-cell">{{ "%.3f"|format((stat.sent + stat.received) * 0.004) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -419,7 +570,7 @@
         // Calculate real emissions data from user stats
         const userMonthlyStats = {{ monthly_stats | tojson }};
         
-        // Process monthly data for chart
+        // Process monthly data for chart (using actual backend data)
         const monthlyLabels = userMonthlyStats.map(stat => stat.month);
         const monthlyEmissions = userMonthlyStats.map(stat => (stat.sent + stat.received) * 0.004);
         
@@ -579,9 +730,10 @@
         // Initialize chart on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Chart is already initialized above
-            console.log('Emissions dashboard loaded with real data');
+            console.log('Emissions dashboard loaded with 12 months of dynamic data');
             console.log('Total emails this month:', {{ received_count + sent_count if received_count is not none and sent_count is not none else 0 }});
             console.log('Total emissions this month:', {{ (received_count + sent_count) * 0.004 if received_count is not none and sent_count is not none else 0 }});
+            console.log('Monthly stats:', userMonthlyStats);
         });
     </script>
 </body>
