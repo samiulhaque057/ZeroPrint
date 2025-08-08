@@ -543,6 +543,7 @@
                 <table class="stats-table">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Month</th>
                             <th>Sent</th>
                             <th>Received</th>
@@ -553,6 +554,7 @@
                     <tbody>
                         {% for stat in monthly_stats %}
                         <tr>
+                            <td>{{ loop.index }}</td>
                             <td class="month-cell">{{ stat.month }}</td>
                             <td>{{ stat.sent }}</td>
                             <td>{{ stat.received }}</td>
