@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emissions Dashboard - ZeroPrint</title>
+    <title>Carbon Calculator - ZeroPrint</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/calculator.css">
     <style>
         * {
             margin: 0;
@@ -255,8 +255,6 @@
             background: #fef2f2;
         }
 
-
-
         .banners-container {
             display: flex;
             gap: 2rem;
@@ -408,6 +406,39 @@
             font-weight: 600;
         }
 
+        .tips-loading {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #16a34a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tips-loading p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .tips-content {
+            margin-top: 1rem;
+        }
+
+        .tips-error {
+            margin-top: 1rem;
+        }
+
         @media (max-width: 768px) {
             .dashboard-layout {
                 flex-direction: column;
@@ -464,17 +495,15 @@
         {% include 'sidebar.html' %}
 
         <div class="main-content">
-            <a href="/" class="back-home">
-                ← Back to Home
+            <a href="/dashboard" class="back-home">
+                ← Back to Dashboard
             </a>
 
             <div class="header">
                 <div class="header-logo">
                     <img src="/static/transparent_logo2.png" alt="ZeroPrint" style="width: 40px; height: 40px; object-fit: contain;">
-                    <span>Emissions Dashboard</span>
+                    <span>Carbon Footprint Calculator</span>
                 </div>
-                
-              
 
                 <div class="user-info">
                     <div class="user-details">
@@ -490,231 +519,210 @@
                 </div>
             </div>
 
-            <div class="banners-container">
-                                 <div class="emissions-banner">
-                     <h2>Current Month's CO2 Emissions</h2>
-                     <div class="emissions-value">{{ "%.3f"|format((received_count + sent_count) * 0.004) if received_count is not none and sent_count is not none else "0.000" }} kgs</div>
-                     <div class="emissions-label">CO₂ equivalent (4g per email)</div>
-                 </div>
-                <div class="storage-banner">
-                    <h2>Google Drive Storage</h2>
-                    <div class="storage-value">{{ "%.2f"|format(drive_storage_gb) if drive_storage_gb is not none else 0 }} GB</div>
-                    <div class="storage-label">Used storage space</div>
+            <div class="container">
+                <div class="hero-section">
+                    <h2>Carbon Footprint Calculator</h2>
+                    <p>Track, measure, and reduce your transportation emissions for a greener planet</p>
                 </div>
-            </div>
 
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h3 class="chart-title">Email Emissions Over Time</h3>
-                    <div class="time-buttons">
-                        <button class="time-btn active" onclick="switchTimeframe('daily')">Daily</button>
-                        <button class="time-btn" onclick="switchTimeframe('weekly')">Weekly</button>
-                        <button class="time-btn" onclick="switchTimeframe('monthly')">Monthly</button>
+                <div class="dashboard">
+                    <div class="left-panel">
+                        <h3>Your Transportation</h3>
+                        
+                        <div class="transport-item">
+                            <div class="transport-header">
+                                <span class="transport-icon">🚌</span>
+                                <span class="transport-name">Bus Travel</span>
+                                <span class="transport-value" id="bus-value">0 km</span>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="bus-slider" min="0" max="200" value="0" data-transport="bus">
+                            </div>
+                        </div>
+
+                        <div class="transport-item">
+                            <div class="transport-header">
+                                <span class="transport-icon">🚗</span>
+                                <span class="transport-name">Car Travel</span>
+                                <span class="transport-value" id="car-value">0 km</span>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="car-slider" min="0" max="200" value="0" data-transport="car">
+                            </div>
+                        </div>
+
+                        <div class="transport-item">
+                            <div class="transport-header">
+                                <span class="transport-icon">🚴</span>
+                                <span class="transport-name">Bike Travel</span>
+                                <span class="transport-value" id="bike-value">0 km</span>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="bike-slider" min="0" max="200" value="0" data-transport="bike">
+                            </div>
+                        </div>
+
+                        <div class="transport-item">
+                            <div class="transport-header">
+                                <span class="transport-icon">🚲</span>
+                                <span class="transport-name">Cycle Travel</span>
+                                <span class="transport-value" id="cycle-value">0 km</span>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="cycle-slider" min="0" max="200" value="0" data-transport="cycle">
+                            </div>
+                        </div>
+
+                        <div class="transport-item">
+                            <div class="transport-header">
+                                <span class="transport-icon">🚶</span>
+                                <span class="transport-name">Walking</span>
+                                <span class="transport-value" id="walking-value">0 km</span>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="walking-slider" min="0" max="100" value="0" data-transport="walking">
+                            </div>
+                        </div>
+
+                        <button class="emissions-btn">Get Tailored AI Tips</button>
+
+                        <div class="chart-container">
+                            <div class="bar-chart">
+                                <div class="bar-item">
+                                    <div class="bar" id="bus-bar" style="height: 0%"></div>
+                                    <div class="bar-label">
+                                        <div class="bar-value" id="bus-emission">0.0</div>
+                                        <div class="bar-unit">kg</div>
+                                        <div class="bar-type">Bus</div>
+                                    </div>
+                                </div>
+                                <div class="bar-item">
+                                    <div class="bar" id="car-bar" style="height: 0%"></div>
+                                    <div class="bar-label">
+                                        <div class="bar-value" id="car-emission">0.0</div>
+                                        <div class="bar-unit">kg</div>
+                                        <div class="bar-type">Car</div>
+                                    </div>
+                                </div>
+                                <div class="bar-item">
+                                    <div class="bar" id="bike-bar" style="height: 0%"></div>
+                                    <div class="bar-label">
+                                        <div class="bar-value" id="bike-emission">0.0</div>
+                                        <div class="bar-unit">kg</div>
+                                        <div class="bar-type">Bike</div>
+                                    </div>
+                                </div>
+                                <div class="bar-item">
+                                    <div class="bar" id="cycle-bar" style="height: 0%"></div>
+                                    <div class="bar-label">
+                                        <div class="bar-value" id="cycle-emission">0.0</div>
+                                        <div class="bar-unit">kg</div>
+                                        <div class="bar-type">Cycle</div>
+                                    </div>
+                                </div>
+                                <div class="bar-item">
+                                    <div class="bar" id="walking-bar" style="height: 0%"></div>
+                                    <div class="bar-label">
+                                        <div class="bar-value" id="walking-emission">0.0</div>
+                                        <div class="bar-unit">kg</div>
+                                        <div class="bar-type">Walk</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="reset-btn" id="reset-btn">RESET CALCULATOR</button>
+                    </div>
+
+                    <div class="right-panel">
+                        <h3>Your Impact</h3>
+                        
+                        <div class="impact-circle">
+                            <div class="circle-chart">
+                                <svg width="250" height="250">
+                                    <circle cx="125" cy="125" r="100" fill="none" stroke="#e0e0e0" stroke-width="10"/>
+                                    <circle cx="125" cy="125" r="100" fill="none" stroke="#ff6b35" stroke-width="10" 
+                                            stroke-dasharray="628" stroke-dashoffset="628" 
+                                            transform="rotate(-90 125 125)" id="progress-circle"/>
+                                </svg>
+                                <div class="circle-text" id="total-distance">0 km</div>
+                            </div>
+                        </div>
+
+                        <div class="emission-stats">
+                            <div class="stat-item">
+                                <div class="stat-label">Total CO₂ Emission</div>
+                                <div class="stat-value red" id="total-emission">0.0 kg</div>
+                            </div>
+                            <div class="stat-item saved">
+                                <div class="stat-label">CO₂ Saved</div>
+                                <div class="stat-value green" id="co2-saved">0.0 kg</div>
+                            </div>
+                        </div>
+
+                        <div class="achievement">
+                            <div class="achievement-icon">🎯</div>
+                            <div class="achievement-text">Outstanding! Over 50% of your travel is zero-emission.</div>
+                        </div>
+
+                        <div class="tips-section">
+                            <h4>💡 AI-Generated Green Transportation Tips</h4>
+                            <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                                Click "Get Tailored AI Tips" button above to get personalized tips based on your current transport data!
+                            </p>
+                            <div id="tips-loading" class="tips-loading">
+                                <div class="loading-spinner"></div>
+                                <p>Generating AI tips...</p>
+                            </div>
+                            <div id="tips-content" class="tips-content" style="display: none;">
+                                <ul class="tips-list" id="tips-list">
+                                </ul>
+                            </div>
+                            <div id="tips-error" class="tips-error" style="display: none;">
+                                <p style="color: #6b7280; font-style: italic; margin-top: 1rem;">
+                                    AI tips are currently unavailable. Please check your API configuration.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="chart-wrapper">
-                    <canvas id="emissionsChart"></canvas>
-                </div>
-            </div>
-
-            <div class="monthly-stats">
-                <h2>Monthly Email Statistics & Emissions</h2>
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Month</th>
-                            <th>Sent</th>
-                            <th>Received</th>
-                            <th>Total Emails</th>
-                            <th>CO₂ (kg)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stat in monthly_stats %}
-                        <tr>
-                            <td>{{ loop.index }}</td>
-                            <td class="month-cell">{{ stat.month }}</td>
-                            <td>{{ stat.sent }}</td>
-                            <td>{{ stat.received }}</td>
-                            <td class="total-cell">{{ stat.sent + stat.received }}</td>
-                            <td class="total-cell">{{ "%.3f"|format((stat.sent + stat.received) * 0.004) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 
+    <script src="/static/calculator.js"></script>
     <script>
-        // Calculate real emissions data from user stats
-        const userMonthlyStats = {{ monthly_stats | tojson }};
-        
-        // Process monthly data for chart (using actual backend data)
-        const monthlyLabels = userMonthlyStats.map(stat => stat.month);
-        const monthlyEmissions = userMonthlyStats.map(stat => (stat.sent + stat.received) * 0.004);
-        
-        // Generate weekly data (simplified - using last 4 weeks)
-        const weeklyLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-        const weeklyEmissions = monthlyEmissions.slice(-4).map(emission => emission / 4); // Divide monthly by 4 for weekly
-        
-        // Generate daily data (simplified - using last 7 days average)
-        const dailyLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const currentMonthEmissions = monthlyEmissions[monthlyEmissions.length - 1] || 0;
-        const dailyAverage = currentMonthEmissions / 30; // Average daily emissions
-        const dailyEmissions = dailyLabels.map(() => dailyAverage + (Math.random() - 0.5) * 0.002); // Add some variation
-        
-        // Chart data with real calculations
-        const dailyData = {
-            labels: dailyLabels,
-            datasets: [{
-                label: 'Emissions (kg)',
-                data: dailyEmissions,
-                borderColor: '#22c55e',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderWidth: 3,
-                pointBackgroundColor: '#22c55e',
-                pointBorderColor: '#22c55e',
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                tension: 0.4
-            }]
-        };
-
-        const weeklyData = {
-            labels: weeklyLabels,
-            datasets: [{
-                label: 'Emissions (kg)',
-                data: weeklyEmissions,
-                borderColor: '#22c55e',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderWidth: 3,
-                pointBackgroundColor: '#22c55e',
-                pointBorderColor: '#22c55e',
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                tension: 0.4
-            }]
-        };
-
-        const monthlyData = {
-            labels: monthlyLabels,
-            datasets: [{
-                label: 'Emissions (kg)',
-                data: monthlyEmissions,
-                borderColor: '#22c55e',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderWidth: 3,
-                pointBackgroundColor: '#22c55e',
-                pointBorderColor: '#22c55e',
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                tension: 0.4
-            }]
-        };
-
-        // Chart configuration
-        const chartConfig = {
-            type: 'line',
-            data: dailyData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `Emissions: ${context.parsed.y.toFixed(3)} kg CO₂`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            font: {
-                                size: 14
-                            },
-                            color: '#6b7280'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: '#f0f0f0',
-                            drawBorder: false
-                        },
-                        ticks: {
-                            font: {
-                                size: 14
-                            },
-                            color: '#6b7280',
-                            callback: function(value) {
-                                return value.toFixed(3) + ' kg';
-                            }
-                        }
-                    }
-                },
-                elements: {
-                    point: {
-                        hoverBackgroundColor: '#16a34a'
-                    }
-                }
-            }
-        };
-
-        // Initialize chart
-        const ctx = document.getElementById('emissionsChart').getContext('2d');
-        const emissionsChart = new Chart(ctx, chartConfig);
-
-        // Functions
-        function switchTimeframe(timeframe) {
-            // Update button states
-            document.querySelectorAll('.time-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Update chart data
-            switch(timeframe) {
-                case 'daily':
-                    emissionsChart.data = dailyData;
-                    break;
-                case 'weekly':
-                    emissionsChart.data = weeklyData;
-                    break;
-                case 'monthly':
-                    emissionsChart.data = monthlyData;
-                    break;
-            }
-            emissionsChart.update();
-        }
-
-        function navigateMonth(direction) {
-            const currentMonthElement = document.getElementById('currentMonth');
-            const currentMonth = currentMonthElement.textContent;
-            
-            // Add your month navigation logic here
-            console.log(`Navigate ${direction} from ${currentMonth}`);
-            
-            // Example: Update the month display
-            // currentMonthElement.textContent = newMonth;
-        }
-
-        // Initialize chart on page load
+        // Load AI tips asynchronously
         document.addEventListener('DOMContentLoaded', function() {
-            // Chart is already initialized above
-            console.log('Emissions dashboard loaded with 12 months of dynamic data');
-            console.log('Total emails this month:', {{ received_count + sent_count if received_count is not none and sent_count is not none else 0 }});
-            console.log('Total emissions this month:', {{ (received_count + sent_count) * 0.004 if received_count is not none and sent_count is not none else 0 }});
-            console.log('Monthly stats:', userMonthlyStats);
+            const tipsLoading = document.getElementById('tips-loading');
+            const tipsContent = document.getElementById('tips-content');
+            const tipsError = document.getElementById('tips-error');
+            const tipsList = document.getElementById('tips-list');
+            
+            // Fetch AI tips from the API
+            fetch('/api/ai-tips')
+                .then(response => response.json())
+                .then(data => {
+                    tipsLoading.style.display = 'none';
+                    
+                    if (data.tips && data.tips.length > 0) {
+                        // Display tips
+                        data.tips.forEach(tip => {
+                            const li = document.createElement('li');
+                            li.textContent = tip;
+                            tipsList.appendChild(li);
+                        });
+                        tipsContent.style.display = 'block';
+                    } else {
+                        // Show error message
+                        tipsError.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading AI tips:', error);
+                    tipsLoading.style.display = 'none';
+                    tipsError.style.display = 'block';
+                });
         });
     </script>
 </body>

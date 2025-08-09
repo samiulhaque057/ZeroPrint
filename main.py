@@ -14,6 +14,7 @@ import concurrent.futures
 from typing import Dict, List, Tuple
 import time
 from functools import lru_cache
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -27,6 +28,8 @@ CACHE_DURATION = 300  # 5 minutes in seconds
 
 CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+# Extract the API key from the environment variable
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK", "")
 REDIRECT_URI = "http://localhost:8000/callback"
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
@@ -45,6 +48,15 @@ client_config = {
         "redirect_uris": [REDIRECT_URI]
     }
 }
+
+class TransportData(BaseModel):
+    bus: float
+    car: float
+    bike: float
+    cycle: float
+    walking: float
+    totalDistance: float
+    totalEmission: float
 
 def fetch_monthly_data(access_token: str, year: int, month: int) -> Dict:
     """Fetch monthly data for a specific year and month with optimized API calls"""
@@ -319,6 +331,140 @@ def get_user_data_from_token(access_token):
     
     return result_data
 
+def get_ai_transportation_tips() -> List[str]:
+    """Generate AI-powered transportation tips using OpenRouter API"""
+    if not DEEPSEEK_API_KEY:
+        # Return empty list if no API key
+        return []
+    
+    try:
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:8000",
+            "X-Title": "ZeroPrint Calculator"
+        }
+        
+        prompt = """Generate 5 practical and actionable green transportation tips for reducing carbon emissions. 
+        Each tip should be:
+        - Specific and actionable
+        - Focused on reducing CO2 emissions
+        - Include a brief explanation of the environmental impact
+        - Start with a checkmark emoji (✅)
+        - Be concise (1-2 sentences max)
+        
+        Format each tip as a single line starting with ✅. Return only the 5 tips, one per line."""
+        
+        data = {
+            "model": "deepseek/deepseek-chat",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 500
+        }
+        
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            
+            # Parse the tips from the response
+            tips = []
+            for line in content.strip().split('\n'):
+                line = line.strip()
+                if line.startswith('✅') and len(line) > 1:
+                    tips.append(line)
+            
+            # Return up to 5 tips
+            return tips[:5]
+        
+    except Exception as e:
+        print(f"Error generating AI tips: {e}")
+    
+    # Return empty list if API fails
+    return []
+
+def get_tailored_transportation_tips(transport_data: TransportData) -> List[str]:
+    """Generate AI-powered tailored transportation tips based on user's transport data"""
+    if not DEEPSEEK_API_KEY:
+        # Return empty list if no API key
+        return []
+    
+    try:
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:8000",
+            "X-Title": "ZeroPrint Calculator"
+        }
+        
+        # Calculate key metrics for personalization
+        car_emission = transport_data.car * 0.21
+        bus_emission = transport_data.bus * 0.12
+        bike_emission = transport_data.bike * 0.075
+        zero_emission_distance = transport_data.cycle + transport_data.walking
+        total_distance = transport_data.totalDistance
+        zero_emission_percentage = (zero_emission_distance / total_distance * 100) if total_distance > 0 else 0
+        
+        # Create highly personalized prompt
+        prompt = f"""You are a friendly, encouraging sustainability coach. Analyze this user's transportation habits and give them 5 highly personalized tips.
+
+USER'S TRANSPORT DATA:
+- Car: {transport_data.car} km ({car_emission:.1f} kg CO2)
+- Bus: {transport_data.bus} km ({bus_emission:.1f} kg CO2) 
+- Bike: {transport_data.bike} km ({bike_emission:.1f} kg CO2)
+- Cycling: {transport_data.cycle} km (0 kg CO2)
+- Walking: {transport_data.walking} km (0 kg CO2)
+- Total distance: {total_distance} km
+- Total CO2: {transport_data.totalEmission:.1f} kg
+- Zero-emission percentage: {zero_emission_percentage:.1f}%
+
+PERSONALIZATION RULES:
+1. If car usage is high (>50km), suggest specific alternatives like "Since you drove {transport_data.car}km this week, try replacing 20km with cycling to save {transport_data.car * 0.21 * 0.5:.1f}kg CO2"
+2. If zero-emission percentage is high (>60%), praise them: "Amazing! {zero_emission_percentage:.1f}% of your travel is zero-emission!"
+3. If total emission is high (>10kg), express concern: "Your {transport_data.totalEmission:.1f}kg CO2 is quite high. Here's how to reduce it..."
+4. Use their actual numbers in suggestions: "Your {transport_data.car}km car trips could be reduced by..."
+5. If they walk/cycle a lot, encourage them: "Great job with {zero_emission_distance}km of zero-emission travel!"
+
+TONE: Be encouraging, specific, and use their actual numbers. Make it feel like you're talking directly to them about their specific habits.
+
+Format each tip as a single line starting with ✅. Return only the 5 tips, one per line."""
+        
+        data = {
+            "model": "deepseek/deepseek-chat",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.8,
+            "max_tokens": 600
+        }
+        
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            
+            # Parse the tips from the response
+            tips = []
+            for line in content.strip().split('\n'):
+                line = line.strip()
+                if line.startswith('✅') and len(line) > 1:
+                    tips.append(line)
+            
+            # Return up to 5 tips
+            return tips[:5]
+        
+    except Exception as e:
+        print(f"Error generating tailored AI tips: {e}")
+    
+    # Return empty list if API fails
+    return []
+
 @app.get("/")
 def home(request: Request):
     # Check if user is logged in via cookie
@@ -377,6 +523,37 @@ def dashboard(request: Request):
     
     # User not logged in, redirect to home
     return RedirectResponse("/")
+
+@app.get("/calculator")
+def calculator(request: Request):
+    # Check if user is logged in via cookie
+    access_token = request.cookies.get("access_token")
+    
+    if access_token:
+        # User is logged in, get data from token
+        user_data = get_user_data_from_token(access_token)
+        if user_data:
+            return templates.TemplateResponse("calculator.html", {
+                "request": request,
+                **user_data,
+                "ai_tips": [],  # Start with empty tips, will load asynchronously
+                "error": None
+            })
+    
+    # User not logged in, redirect to home
+    return RedirectResponse("/")
+
+@app.get("/api/ai-tips")
+def get_ai_tips_api():
+    """API endpoint to get AI tips asynchronously"""
+    tips = get_ai_transportation_tips()
+    return {"tips": tips}
+
+@app.post("/api/tailored-tips")
+def get_tailored_tips_api(transport_data: TransportData):
+    """API endpoint to get tailored AI tips based on transport data"""
+    tips = get_tailored_transportation_tips(transport_data)
+    return {"tips": tips}
 
 @app.get("/callback")
 def callback(request: Request):

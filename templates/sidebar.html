@@ -1,0 +1,26 @@
+<div class="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <img src="/static/transparent_logo2.png" alt="ZeroPrint" style="width: 28px; height: 28px; object-fit: contain;">
+            <span>ZeroPrint</span>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/dashboard" class="nav-item {{ 'active' if request.url.path == '/dashboard' else '' }}">
+            <span class="nav-icon">📊</span>
+            Dashboard
+        </a>
+        <a href="/calculator" class="nav-item {{ 'active' if request.url.path == '/calculator' else '' }}">
+            <span class="nav-icon">🧮</span>
+            Calculator
+        </a>
+        <a href="/emissions" class="nav-item {{ 'active' if request.url.path == '/emissions' else '' }}">
+            <span class="nav-icon">🌳</span>
+            Emissions
+        </a>
+        <a href="/settings" class="nav-item {{ 'active' if request.url.path == '/settings' else '' }}">
+            <span class="nav-icon">⚙️</span>
+            Settings
+        </a>
+    </nav>
+</div>
