@@ -15,8 +15,78 @@ from typing import Dict, List, Tuple
 import time
 from functools import lru_cache
 from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Boolean, Text, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.sql import func
 
 load_dotenv()
+
+# Database setup
+SQLALCHEMY_DATABASE_URL = "sqlite:///./challenges.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Database Models
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    name = Column(String)
+    created_at = Column(DateTime, default=func.now())
+    
+    # Relationships
+    challenges = relationship("UserChallenge", back_populates="user")
+    achievements = relationship("UserAchievement", back_populates="user")
+
+class Challenge(Base):
+    __tablename__ = "challenges"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    challenge_type = Column(String, nullable=False)  # 'individual', 'team', 'company'
+    target_value = Column(Float)
+    target_unit = Column(String)  # 'km', 'emails', 'days', etc.
+    start_date = Column(DateTime, default=func.now())
+    end_date = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    points_reward = Column(Integer, default=100)
+    badge_icon = Column(String, default="🏆")
+    created_at = Column(DateTime, default=func.now())
+
+class UserChallenge(Base):
+    __tablename__ = "user_challenges"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    challenge_id = Column(Integer, ForeignKey("challenges.id"))
+    current_progress = Column(Float, default=0.0)
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+    joined_at = Column(DateTime, default=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="challenges")
+    challenge = relationship("Challenge")
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    achievement_type = Column(String, nullable=False)  # 'streak', 'badge', 'milestone'
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    icon = Column(String, default="🎖️")
+    earned_at = Column(DateTime, default=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="achievements")
+
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -698,3 +768,494 @@ def logout(request: Request):
     response = RedirectResponse("/")
     response.delete_cookie("access_token")
     return response
+
+# Database helper functions
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_or_create_user(db, email: str, name: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(email=email, name=name)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
+
+def get_user_challenges(db, user_id: int):
+    """Get user challenges and convert to dictionaries for template rendering"""
+    user_challenges = db.query(UserChallenge).filter(UserChallenge.user_id == user_id).all()
+    
+    # Convert to dictionaries with challenge details
+    result = []
+    for uc in user_challenges:
+        challenge = db.query(Challenge).filter(Challenge.id == uc.challenge_id).first()
+        if challenge:
+            result.append({
+                "id": uc.id,
+                "user_id": uc.user_id,
+                "challenge_id": uc.challenge_id,
+                "current_progress": uc.current_progress,
+                "is_completed": uc.is_completed,
+                "completed_at": uc.completed_at.isoformat() if uc.completed_at else None,
+                "joined_at": uc.joined_at.isoformat() if uc.joined_at else None,
+                "challenge": {
+                    "id": challenge.id,
+                    "title": challenge.title,
+                    "description": challenge.description,
+                    "challenge_type": challenge.challenge_type,
+                    "target_value": challenge.target_value,
+                    "target_unit": challenge.target_unit,
+                    "points_reward": challenge.points_reward,
+                    "badge_icon": challenge.badge_icon
+                }
+            })
+    return result
+
+def get_active_challenges(db):
+    """Get active challenges and convert to dictionaries for template rendering"""
+    challenges = db.query(Challenge).filter(Challenge.is_active == True).all()
+    
+    # Convert to dictionaries
+    result = []
+    for challenge in challenges:
+        result.append({
+            "id": challenge.id,
+            "title": challenge.title,
+            "description": challenge.description,
+            "challenge_type": challenge.challenge_type,
+            "target_value": challenge.target_value,
+            "target_unit": challenge.target_unit,
+            "start_date": challenge.start_date.isoformat() if challenge.start_date else None,
+            "end_date": challenge.end_date.isoformat() if challenge.end_date else None,
+            "is_active": challenge.is_active,
+            "points_reward": challenge.points_reward,
+            "badge_icon": challenge.badge_icon,
+            "created_at": challenge.created_at.isoformat() if challenge.created_at else None
+        })
+    return result
+
+def get_user_achievements(db, user_id: int):
+    """Get user achievements and convert to dictionaries for template rendering"""
+    achievements = db.query(UserAchievement).filter(UserAchievement.user_id == user_id).all()
+    
+    # Convert to dictionaries
+    result = []
+    for achievement in achievements:
+        result.append({
+            "id": achievement.id,
+            "user_id": achievement.user_id,
+            "achievement_type": achievement.achievement_type,
+            "title": achievement.title,
+            "description": achievement.description,
+            "icon": achievement.icon,
+            "earned_at": achievement.earned_at.isoformat() if achievement.earned_at else None
+        })
+    return result
+
+def create_sample_challenges(db):
+    """Create sample challenges if none exist"""
+    existing_challenges = db.query(Challenge).count()
+    if existing_challenges == 0:
+        sample_challenges = [
+            Challenge(
+                title="Email Reduction Champion",
+                description="Reduce your daily email count by 20% for a week",
+                challenge_type="individual",
+                target_value=20.0,
+                target_unit="%",
+                points_reward=150,
+                badge_icon="📧"
+            ),
+            Challenge(
+                title="Green Commuter",
+                description="Use public transport or bike for 5 days straight",
+                challenge_type="individual",
+                target_value=5.0,
+                target_unit="days",
+                points_reward=200,
+                badge_icon="🚲"
+            ),
+            Challenge(
+                title="Department Sustainability Race",
+                description="Compete with other departments to reduce overall emissions",
+                challenge_type="team",
+                target_value=15.0,
+                target_unit="%",
+                points_reward=500,
+                badge_icon="🏢"
+            ),
+            Challenge(
+                title="Company Carbon Neutral Week",
+                description="Achieve company-wide carbon neutrality for one week",
+                challenge_type="company",
+                target_value=0.0,
+                target_unit="kg CO2",
+                points_reward=1000,
+                badge_icon="🌍"
+            ),
+            Challenge(
+                title="Digital Cleanup Master",
+                description="Delete 100 unnecessary emails and files",
+                challenge_type="individual",
+                target_value=100.0,
+                target_unit="items",
+                points_reward=120,
+                badge_icon="🧹"
+            ),
+            Challenge(
+                title="Sustainable Streak",
+                description="Maintain zero-emission travel for 7 consecutive days",
+                challenge_type="individual",
+                target_value=7.0,
+                target_unit="days",
+                points_reward=300,
+                badge_icon="🔥"
+            )
+        ]
+        
+        for challenge in sample_challenges:
+            db.add(challenge)
+        db.commit()
+
+@app.get("/challenges")
+def challenges(request: Request):
+    # Check if user is logged in via cookie
+    access_token = request.cookies.get("access_token")
+    
+    if access_token:
+        # User is logged in, get data from token
+        user_data = get_user_data_from_token(access_token)
+        if user_data:
+            # Get database session
+            db = SessionLocal()
+            try:
+                # Get or create user
+                user = get_or_create_user(db, user_data["user_email"], user_data["user_name"])
+                
+                # Create sample challenges if none exist
+                create_sample_challenges(db)
+                
+                # Get active challenges
+                active_challenges = get_active_challenges(db)
+                
+                # Get user's current challenges
+                user_challenges = get_user_challenges(db, user.id)
+                
+                # Get user achievements
+                user_achievements = get_user_achievements(db, user.id)
+                
+                # Calculate user stats
+                total_points = sum(uc["challenge"]["points_reward"] for uc in user_challenges if uc["is_completed"])
+                completed_challenges = len([uc for uc in user_challenges if uc["is_completed"]])
+                current_streak = 0  # This would be calculated based on daily activity
+                
+                return templates.TemplateResponse("challenges.html", {
+                    "request": request,
+                    **user_data,
+                    "active_challenges": active_challenges,
+                    "user_challenges": user_challenges,
+                    "user_achievements": user_achievements,
+                    "total_points": total_points,
+                    "completed_challenges": completed_challenges,
+                    "current_streak": current_streak,
+                    "error": None
+                })
+            finally:
+                db.close()
+    
+    # User not logged in, redirect to home
+    return RedirectResponse("/")
+
+@app.post("/challenges/join/{challenge_id}")
+def join_challenge(challenge_id: int, request: Request):
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return {"success": False, "message": "Not authenticated"}
+    
+    user_data = get_user_data_from_token(access_token)
+    if not user_data:
+        return {"success": False, "message": "Invalid token"}
+    
+    db = SessionLocal()
+    try:
+        user = get_or_create_user(db, user_data["user_email"], user_data["user_name"])
+        
+        # Check if user already joined this challenge
+        existing = db.query(UserChallenge).filter(
+            UserChallenge.user_id == user.id,
+            UserChallenge.challenge_id == challenge_id
+        ).first()
+        
+        if existing:
+            return {"success": False, "message": "Already joined this challenge"}
+        
+        # Join the challenge
+        user_challenge = UserChallenge(
+            user_id=user.id,
+            challenge_id=challenge_id
+        )
+        db.add(user_challenge)
+        db.commit()
+        
+        return {"success": True, "message": "Successfully joined challenge"}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"Error: {str(e)}"}
+    finally:
+        db.close()
+
+@app.post("/challenges/update-progress/{challenge_id}")
+async def update_challenge_progress(challenge_id: int, request: Request):
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return {"success": False, "message": "Not authenticated"}
+    
+    user_data = get_user_data_from_token(access_token)
+    if not user_data:
+        return {"success": False, "message": "Invalid token"}
+    
+    # Get progress from request body
+    try:
+        body = await request.body()
+        import json
+        data = json.loads(body.decode('utf-8'))
+        progress = float(data.get("progress", 0))
+    except:
+        return {"success": False, "message": "Invalid progress data"}
+    
+    db = SessionLocal()
+    try:
+        user = get_or_create_user(db, user_data["user_email"], user_data["user_name"])
+        
+        # Get user's challenge
+        user_challenge = db.query(UserChallenge).filter(
+            UserChallenge.user_id == user.id,
+            UserChallenge.challenge_id == challenge_id
+        ).first()
+        
+        if not user_challenge:
+            return {"success": False, "message": "Challenge not found"}
+        
+        # Update progress
+        user_challenge.current_progress = progress
+        
+        # Check if challenge is completed
+        challenge = db.query(Challenge).filter(Challenge.id == challenge_id).first()
+        if challenge and progress >= challenge.target_value and not user_challenge.is_completed:
+            user_challenge.is_completed = True
+            user_challenge.completed_at = func.now()
+            
+            # Create achievement
+            achievement = UserAchievement(
+                user_id=user.id,
+                achievement_type="badge",
+                title=f"Completed: {challenge.title}",
+                description=f"Successfully completed the {challenge.title} challenge",
+                icon=challenge.badge_icon
+            )
+            db.add(achievement)
+        
+        db.commit()
+        return {"success": True, "message": "Progress updated"}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"Error: {str(e)}"}
+    finally:
+        db.close()
+
+# Admin functionality
+ADMIN_EMAILS = ["admin@zeroprint.com"]  # Add admin emails here
+ADMIN_PASSWORD = "admin123"  # Change this to a secure password
+
+def is_admin_user(email: str) -> bool:
+    """Check if user is an admin"""
+    return email in ADMIN_EMAILS
+
+@app.get("/admin")
+def admin_login_page(request: Request):
+    """Admin login page"""
+    return templates.TemplateResponse("admin_login.html", {"request": request})
+
+@app.post("/admin/login")
+async def admin_login(request: Request):
+    """Admin login endpoint"""
+    try:
+        body = await request.body()
+        data = json.loads(body.decode('utf-8'))
+        email = data.get("email", "")
+        password = data.get("password", "")
+        
+        if email in ADMIN_EMAILS and password == ADMIN_PASSWORD:
+            # Return success response
+            return {"success": True, "message": "Login successful"}
+        else:
+            return {"success": False, "message": "Invalid credentials"}
+    except Exception as e:
+        return {"success": False, "message": "Invalid request data"}
+
+@app.get("/admin/dashboard")
+def admin_dashboard(request: Request):
+    """Admin dashboard - requires admin authentication"""
+    admin_token = request.cookies.get("admin_token")
+    if not admin_token or admin_token != "admin_authenticated":
+        return RedirectResponse("/admin", status_code=302)
+    
+    db = SessionLocal()
+    try:
+        # Get statistics
+        total_users = db.query(User).count()
+        total_challenges = db.query(Challenge).count()
+        active_challenges = db.query(Challenge).filter(Challenge.is_active == True).count()
+        total_user_challenges = db.query(UserChallenge).count()
+        completed_challenges = db.query(UserChallenge).filter(UserChallenge.is_completed == True).count()
+        
+        # Get recent users
+        recent_users = db.query(User).order_by(User.created_at.desc()).limit(10).all()
+        recent_users_data = []
+        for user in recent_users:
+            recent_users_data.append({
+                "id": user.id,
+                "email": user.email,
+                "name": user.name,
+                "created_at": user.created_at.isoformat() if user.created_at else None
+            })
+        
+        # Get recent challenges
+        recent_challenges = db.query(Challenge).order_by(Challenge.created_at.desc()).limit(10).all()
+        recent_challenges_data = []
+        for challenge in recent_challenges:
+            recent_challenges_data.append({
+                "id": challenge.id,
+                "title": challenge.title,
+                "challenge_type": challenge.challenge_type,
+                "is_active": challenge.is_active,
+                "points_reward": challenge.points_reward,
+                "created_at": challenge.created_at.isoformat() if challenge.created_at else None
+            })
+        
+        return templates.TemplateResponse("admin_dashboard.html", {
+            "request": request,
+            "total_users": total_users,
+            "total_challenges": total_challenges,
+            "active_challenges": active_challenges,
+            "total_user_challenges": total_user_challenges,
+            "completed_challenges": completed_challenges,
+            "recent_users": recent_users_data,
+            "recent_challenges": recent_challenges_data
+        })
+    finally:
+        db.close()
+
+@app.post("/admin/logout")
+def admin_logout(request: Request):
+    """Admin logout endpoint"""
+    response = RedirectResponse("/admin", status_code=302)
+    response.delete_cookie("admin_token")
+    return response
+
+@app.post("/admin/challenges/add")
+async def admin_add_challenge(request: Request):
+    """Admin endpoint to add new challenges"""
+    admin_token = request.cookies.get("admin_token")
+    if not admin_token or admin_token != "admin_authenticated":
+        return {"success": False, "message": "Not authenticated"}
+    
+    try:
+        body = await request.body()
+        data = json.loads(body.decode('utf-8'))
+        
+        db = SessionLocal()
+        try:
+            challenge = Challenge(
+                title=data.get("title"),
+                description=data.get("description"),
+                challenge_type=data.get("challenge_type"),
+                target_value=float(data.get("target_value", 0)),
+                target_unit=data.get("target_unit"),
+                points_reward=int(data.get("points_reward", 100)),
+                badge_icon=data.get("badge_icon", "🏆")
+            )
+            db.add(challenge)
+            db.commit()
+            return {"success": True, "message": "Challenge added successfully"}
+        finally:
+            db.close()
+    except Exception as e:
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+@app.post("/admin/challenges/update/{challenge_id}")
+async def admin_update_challenge(challenge_id: int, request: Request):
+    """Admin endpoint to update challenges"""
+    admin_token = request.cookies.get("admin_token")
+    if not admin_token or admin_token != "admin_authenticated":
+        return {"success": False, "message": "Not authenticated"}
+
+    try:
+        body = await request.body()
+        data = json.loads(body.decode('utf-8'))
+        
+        db = SessionLocal()
+        try:
+            challenge = db.query(Challenge).filter(Challenge.id == challenge_id).first()
+            if not challenge:
+                return {"success": False, "message": "Challenge not found"}
+            
+            # Update fields
+            if "title" in data:
+                challenge.title = data["title"]
+            if "description" in data:
+                challenge.description = data["description"]
+            if "challenge_type" in data:
+                challenge.challenge_type = data["challenge_type"]
+            if "target_value" in data:
+                challenge.target_value = float(data["target_value"])
+            if "target_unit" in data:
+                challenge.target_unit = data["target_unit"]
+            if "points_reward" in data:
+                challenge.points_reward = int(data["points_reward"])
+            if "badge_icon" in data:
+                challenge.badge_icon = data["badge_icon"]
+            if "is_active" in data:
+                challenge.is_active = bool(data["is_active"])
+            
+            db.commit()
+            return {"success": True, "message": "Challenge updated successfully"}
+        finally:
+            db.close()
+    except Exception as e:
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+@app.delete("/admin/challenges/{challenge_id}")
+def admin_delete_challenge(challenge_id: int, request: Request):
+    """Admin endpoint to delete challenges"""
+    admin_token = request.cookies.get("admin_token")
+    if not admin_token or admin_token != "admin_authenticated":
+        return {"success": False, "message": "Not authenticated"}
+    
+    db = SessionLocal()
+    try:
+        challenge = db.query(Challenge).filter(Challenge.id == challenge_id).first()
+        if not challenge:
+            return {"success": False, "message": "Challenge not found"}
+        
+        # Delete related user challenges first
+        db.query(UserChallenge).filter(UserChallenge.challenge_id == challenge_id).delete()
+        
+        # Delete the challenge
+        db.delete(challenge)
+        db.commit()
+        return {"success": True, "message": "Challenge deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"Error: {str(e)}"}
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

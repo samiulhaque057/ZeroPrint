@@ -14,6 +14,10 @@
             <span class="nav-icon">🧮</span>
             Calculator
         </a>
+        <a href="/challenges" class="nav-item {{ 'active' if request.url.path == '/challenges' else '' }}">
+            <span class="nav-icon">🏆</span>
+            Challenges
+        </a>
         <a href="/emissions" class="nav-item {{ 'active' if request.url.path == '/emissions' else '' }}">
             <span class="nav-icon">🌳</span>
             Emissions
@@ -21,6 +25,10 @@
         <a href="/settings" class="nav-item {{ 'active' if request.url.path == '/settings' else '' }}">
             <span class="nav-icon">⚙️</span>
             Settings
+        </a>
+        <a href="/admin" class="nav-item {{ 'active' if request.url.path.startswith('/admin') else '' }}" style="margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+            <span class="nav-icon">🔐</span>
+            Admin Panel
         </a>
     </nav>
 </div>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - ZeroPrint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .admin-login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .admin-logo {
+            margin-bottom: 2rem;
+        }
+
+        .admin-logo img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .admin-logo h1 {
+            color: #111827;
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-logo p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .admin-form {
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #10b981;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .admin-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .admin-btn:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            border: 1px solid #fecaca;
+            display: none;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            color: #16a34a;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            border: 1px solid #bbf7d0;
+            display: none;
+        }
+
+        .back-link {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .back-link a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link a:hover {
+            color: #374151;
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <div class="admin-logo">
+            <img src="/static/transparent_logo2.png" alt="ZeroPrint">
+            <h1>ZeroPrint</h1>
+            <p>Administrative Access</p>
+            <div class="admin-badge">🔐 ADMIN PANEL</div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <form class="admin-form" id="adminLoginForm">
+            <div class="form-group">
+                <label for="email">Admin Email</label>
+                <input type="email" id="email" name="email" required placeholder="admin@zeroprint.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter admin password">
+            </div>
+            
+            <button type="submit" class="admin-btn">🔐 Sign In to Admin Panel</button>
+        </form>
+
+        <div class="back-link">
+            <a href="/">← Back to Main Site</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Hide any existing messages
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            try {
+                console.log('Sending login request...');
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('Login successful, setting cookie and redirecting...');
+                        // Set admin cookie
+                        document.cookie = "admin_token=admin_authenticated; max-age=3600; path=/; samesite=lax";
+                        // Redirect to dashboard
+                        window.location.href = '/admin/dashboard';
+                    } else {
+                        console.log('Login failed:', data);
+                        showMessage('error', data.message || 'Login failed');
+                    }
+                } else {
+                    const data = await response.json();
+                    console.log('Login failed:', data);
+                    showMessage('error', data.message || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('error', 'Network error. Please try again.');
+            }
+        });
+        
+        function showMessage(type, message) {
+            const element = document.getElementById(type === 'error' ? 'errorMessage' : 'successMessage');
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

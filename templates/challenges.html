@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenges & Competitions - ZeroPrint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 2rem 0;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 2rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: #111827;
+        }
+
+        .sidebar-logo .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: #16a34a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .sidebar-nav {
+            padding: 0 0.75rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.75rem 0.875rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .nav-item:hover {
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        .nav-item.active {
+            background: #16a34a;
+            color: white;
+        }
+
+        .nav-item.active:hover {
+            background: #15803d;
+        }
+
+        .nav-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            margin-left: 240px;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #16a34a;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem 0;
+            transition: color 0.3s ease;
+        }
+
+        .back-home:hover {
+            color: #15803d;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3f4f6;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #111827;
+        }
+
+        .header-logo .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: #16a34a;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            background: #16a34a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .user-details {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-email {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .logout-btn {
+            background: white;
+            color: #dc2626;
+            padding: 0.5rem 1rem;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn:hover {
+            background: #fef2f2;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3f4f6;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #16a34a;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .challenges-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3f4f6;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .challenge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .challenge-card {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .challenge-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .challenge-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .challenge-icon {
+            font-size: 1.5rem;
+        }
+
+        .challenge-title {
+            font-weight: 600;
+            color: #111827;
+            font-size: 1.125rem;
+        }
+
+        .challenge-description {
+            color: #6b7280;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .challenge-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .challenge-type {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .challenge-reward {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .challenge-progress {
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        .challenge-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #15803d;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .achievements-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3f4f6;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .achievement-card {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+
+        .achievement-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .achievement-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .achievement-date {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+
+        .leaderboard-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3f4f6;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .leaderboard-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .leaderboard-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .rank {
+            font-weight: 600;
+            color: #16a34a;
+        }
+
+        .rank-1 { color: #fbbf24; }
+        .rank-2 { color: #9ca3af; }
+        .rank-3 { color: #d97706; }
+
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 1rem 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .user-info {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .challenge-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        {% include 'sidebar.html' %}
+
+        <div class="main-content">
+            <a href="/" class="back-home">
+                ← Back to Home
+            </a>
+
+            <div class="header">
+                <div class="header-logo">
+                    <img src="/static/transparent_logo2.png" alt="ZeroPrint" style="width: 40px; height: 40px; object-fit: contain;">
+                    <span>Challenges & Competitions</span>
+                </div>
+
+                <div class="user-info">
+                    <div class="user-details">
+                        <div class="user-name">{{ user_name }}</div>
+                        <div class="user-email">{{ user_email }}</div>
+                    </div>
+                    <div class="user-avatar">
+                        {{ user_name[0] if user_name else 'U' }}
+                    </div>
+                    <a href="/logout" class="logout-btn">
+                        🚪 Logout
+                    </a>
+                </div>
+            </div>
+
+            <!-- User Stats -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value">{{ total_points }}</div>
+                    <div class="stat-label">Total Points</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value">{{ completed_challenges }}</div>
+                    <div class="stat-label">Completed Challenges</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-value">{{ current_streak }}</div>
+                    <div class="stat-label">Current Streak</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎖️</div>
+                    <div class="stat-value">{{ user_achievements|length }}</div>
+                    <div class="stat-label">Achievements Earned</div>
+                </div>
+            </div>
+
+            <!-- Active Challenges -->
+            <div class="challenges-section">
+                <div class="section-header">
+                    <h2 class="section-title">Available Challenges</h2>
+                </div>
+                <div class="challenge-grid">
+                    {% for challenge in active_challenges %}
+                    <div class="challenge-card">
+                        <div class="challenge-header">
+                            <div class="challenge-icon">{{ challenge.badge_icon }}</div>
+                            <div class="challenge-title">{{ challenge.title }}</div>
+                        </div>
+                        <div class="challenge-description">{{ challenge.description }}</div>
+                        <div class="challenge-meta">
+                            <span class="challenge-type">{{ challenge.challenge_type.title() }}</span>
+                            <span class="challenge-reward">{{ challenge.points_reward }} pts</span>
+                        </div>
+                        <div class="challenge-actions">
+                            <button class="btn btn-primary" onclick="joinChallenge({{ challenge.id }})">
+                                🚀 Join Challenge
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- My Challenges -->
+            {% if user_challenges %}
+            <div class="challenges-section">
+                <div class="section-header">
+                    <h2 class="section-title">My Active Challenges</h2>
+                </div>
+                <div class="challenge-grid">
+                    {% for user_challenge in user_challenges %}
+                    {% if not user_challenge.is_completed %}
+                    <div class="challenge-card">
+                        <div class="challenge-header">
+                            <div class="challenge-icon">{{ user_challenge.challenge.badge_icon }}</div>
+                            <div class="challenge-title">{{ user_challenge.challenge.title }}</div>
+                        </div>
+                        <div class="challenge-description">{{ user_challenge.challenge.description }}</div>
+                        <div class="challenge-meta">
+                            <span class="challenge-type">{{ user_challenge.challenge.challenge_type.title() }}</span>
+                            <span class="challenge-reward">{{ user_challenge.challenge.points_reward }} pts</span>
+                        </div>
+                        <div class="challenge-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ (user_challenge.current_progress / user_challenge.challenge.target_value * 100) if user_challenge.challenge.target_value > 0 else 0 }}%"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span>{{ user_challenge.current_progress }}/{{ user_challenge.challenge.target_value }} {{ user_challenge.challenge.target_unit }}</span>
+                                <span>{{ "%.1f"|format(user_challenge.current_progress / user_challenge.challenge.target_value * 100) if user_challenge.challenge.target_value > 0 else 0 }}%</span>
+                            </div>
+                        </div>
+                        <div class="challenge-actions">
+                            <button class="btn btn-secondary" onclick="updateProgress({{ user_challenge.challenge_id }})">
+                                📊 Update Progress
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Achievements -->
+            {% if user_achievements %}
+            <div class="achievements-section">
+                <div class="section-header">
+                    <h2 class="section-title">My Achievements</h2>
+                </div>
+                <div class="achievements-grid">
+                    {% for achievement in user_achievements %}
+                    <div class="achievement-card">
+                        <div class="achievement-icon">{{ achievement.icon }}</div>
+                        <div class="achievement-title">{{ achievement.title }}</div>
+                        <div class="achievement-date">{{ achievement.earned_at[:10] if achievement.earned_at else 'Recently' }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Leaderboard -->
+            <div class="leaderboard-section">
+                <div class="section-header">
+                    <h2 class="section-title">Company Leaderboard</h2>
+                </div>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Employee</th>
+                            <th>Points</th>
+                            <th>Challenges Completed</th>
+                            <th>Current Streak</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="rank rank-1">🥇</td>
+                            <td>{{ user_name }}</td>
+                            <td>{{ total_points }}</td>
+                            <td>{{ completed_challenges }}</td>
+                            <td>{{ current_streak }}</td>
+                        </tr>
+                        <tr>
+                            <td class="rank rank-2">🥈</td>
+                            <td>Sarah Johnson</td>
+                            <td>850</td>
+                            <td>6</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td class="rank rank-3">🥉</td>
+                            <td>Mike Chen</td>
+                            <td>720</td>
+                            <td>5</td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td class="rank">4</td>
+                            <td>Emily Davis</td>
+                            <td>680</td>
+                            <td>4</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td class="rank">5</td>
+                            <td>Alex Thompson</td>
+                            <td>590</td>
+                            <td>4</td>
+                            <td>1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function joinChallenge(challengeId) {
+            try {
+                const response = await fetch(`/challenges/join/${challengeId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Successfully joined the challenge!');
+                    location.reload(); // Refresh to show updated state
+                } else {
+                    alert(result.message || 'Failed to join challenge');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to join challenge');
+            }
+        }
+
+        async function updateProgress(challengeId) {
+            const progress = prompt('Enter your current progress (number):');
+            if (progress === null || progress === '') return;
+            
+            const progressValue = parseFloat(progress);
+            if (isNaN(progressValue)) {
+                alert('Please enter a valid number');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/challenges/update-progress/${challengeId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ progress: progressValue })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Progress updated successfully!');
+                    location.reload(); // Refresh to show updated state
+                } else {
+                    alert(result.message || 'Failed to update progress');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to update progress');
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Challenges page loaded');
+            console.log('User challenges:', {{ user_challenges | tojson }});
+            console.log('User achievements:', {{ user_achievements | tojson }});
+        });
+    </script>
+</body>
+</html>
