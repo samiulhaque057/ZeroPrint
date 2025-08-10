@@ -410,8 +410,99 @@ def get_tailored_transportation_tips(transport_data: TransportData) -> List[str]
         total_distance = transport_data.totalDistance
         zero_emission_percentage = (zero_emission_distance / total_distance * 100) if total_distance > 0 else 0
         
-        # Create highly personalized prompt
-        prompt = f"""You are a friendly, encouraging sustainability coach. Analyze this user's transportation habits and give them 5 highly personalized tips.
+        # Create dynamic, varied prompts for personalization
+        import random
+        
+        # Different coaching styles and tones
+        coaching_styles = [
+            "friendly sustainability coach",
+            "eco-friendly travel advisor", 
+            "green transportation expert",
+            "climate-conscious mobility guide",
+            "sustainable travel mentor",
+            "environmental impact specialist",
+            "carbon footprint consultant",
+            "green mobility advocate",
+            "eco-transportation guru",
+            "sustainability travel buddy"
+        ]
+        
+        # Varied approaches for different scenarios
+        car_alternatives = [
+            f"Consider replacing some of your {transport_data.car}km car trips with cycling to save {transport_data.car * 0.21 * 0.3:.1f}kg CO2",
+            f"Your {transport_data.car}km car usage could be reduced by trying public transport for shorter trips",
+            f"Think about carpooling for your {transport_data.car}km weekly car journeys to cut emissions",
+            f"Your car trips of {transport_data.car}km could be partially replaced with walking for distances under 2km",
+            f"Your {transport_data.car}km car travel could be optimized by combining errands into fewer trips",
+            f"Consider electric vehicle options for your {transport_data.car}km weekly car usage",
+            f"Your {transport_data.car}km car journeys might benefit from a hybrid approach with some walking/cycling"
+        ]
+        
+        praise_messages = [
+            f"Fantastic work! {zero_emission_percentage:.1f}% of your travel is already zero-emission!",
+            f"You're crushing it! {zero_emission_percentage:.1f}% zero-emission travel is amazing!",
+            f"Outstanding! You're already at {zero_emission_percentage:.1f}% zero-emission travel!",
+            f"Impressive! {zero_emission_percentage:.1f}% of your journeys are emission-free!"
+        ]
+        
+        concern_messages = [
+            f"Your {transport_data.totalEmission:.1f}kg CO2 footprint could be reduced with some changes...",
+            f"At {transport_data.totalEmission:.1f}kg CO2, there's room for improvement in your travel choices...",
+            f"Your current {transport_data.totalEmission:.1f}kg CO2 emissions suggest some optimization opportunities...",
+            f"With {transport_data.totalEmission:.1f}kg CO2, consider these eco-friendly alternatives..."
+        ]
+        
+        encouragement_messages = [
+            f"Keep up the great work with your {zero_emission_distance}km of zero-emission travel!",
+            f"Your {zero_emission_distance}km of walking/cycling is making a real difference!",
+            f"Amazing commitment to sustainable travel with {zero_emission_distance}km of zero-emission journeys!",
+            f"Your {zero_emission_distance}km of eco-friendly travel is inspiring!"
+        ]
+        
+        # Add seasonal and contextual variations
+        from datetime import datetime
+        current_month = datetime.now().month
+        
+        # Seasonal variations
+        seasonal_context = ""
+        if current_month in [12, 1, 2]:  # Winter
+            seasonal_context = " (consider weather-appropriate alternatives)"
+        elif current_month in [3, 4, 5]:  # Spring
+            seasonal_context = " (perfect weather for outdoor activities)"
+        elif current_month in [6, 7, 8]:  # Summer
+            seasonal_context = " (great time for cycling and walking)"
+        elif current_month in [9, 10, 11]:  # Fall
+            seasonal_context = " (enjoy the beautiful weather while being eco-friendly)"
+        
+        # Additional contextual elements for variety
+        time_of_day = "morning" if datetime.now().hour < 12 else "afternoon" if datetime.now().hour < 17 else "evening"
+        contextual_greeting = f"Good {time_of_day}! "
+        
+        # Random motivational elements
+        motivational_phrases = [
+            "Every small change counts!",
+            "You're making a difference!",
+            "Small steps lead to big impacts!",
+            "Your choices matter!",
+            "Keep up the great work!"
+        ]
+        selected_motivation = random.choice(motivational_phrases)
+        
+        # Randomly select coaching style and messages with some weighted randomization
+        selected_style = random.choice(coaching_styles)
+        
+        # Sometimes use multiple variations for more variety
+        if random.random() < 0.3:  # 30% chance to combine multiple approaches
+            selected_car_alt = random.choice(car_alternatives) + " " + random.choice(car_alternatives[:3])
+        else:
+            selected_car_alt = random.choice(car_alternatives)
+            
+        selected_praise = random.choice(praise_messages)
+        selected_concern = random.choice(concern_messages)
+        selected_encouragement = random.choice(encouragement_messages)
+        
+        # Dynamic prompt with varied content
+        prompt = f"""{contextual_greeting}You are a {selected_style}. {selected_motivation} Analyze this user's transportation habits and give them 5 highly personalized tips.
 
 USER'S TRANSPORT DATA:
 - Car: {transport_data.car} km ({car_emission:.1f} kg CO2)
@@ -423,23 +514,30 @@ USER'S TRANSPORT DATA:
 - Total CO2: {transport_data.totalEmission:.1f} kg
 - Zero-emission percentage: {zero_emission_percentage:.1f}%
 
-PERSONALIZATION RULES:
-1. If car usage is high (>50km), suggest specific alternatives like "Since you drove {transport_data.car}km this week, try replacing 20km with cycling to save {transport_data.car * 0.21 * 0.5:.1f}kg CO2"
-2. If zero-emission percentage is high (>60%), praise them: "Amazing! {zero_emission_percentage:.1f}% of your travel is zero-emission!"
-3. If total emission is high (>10kg), express concern: "Your {transport_data.totalEmission:.1f}kg CO2 is quite high. Here's how to reduce it..."
-4. Use their actual numbers in suggestions: "Your {transport_data.car}km car trips could be reduced by..."
-5. If they walk/cycle a lot, encourage them: "Great job with {zero_emission_distance}km of zero-emission travel!"
+ANALYSIS GUIDELINES:
+- If car usage is high (>50km): {selected_car_alt}
+- If zero-emission percentage is high (>60%): {selected_praise}
+- If total emission is high (>10kg): {selected_concern}
+- If they walk/cycle a lot: {selected_encouragement}
+- Always use their actual numbers and be specific about their habits
+- Vary your language and suggestions - don't be repetitive
+- Consider their specific distances and suggest realistic alternatives
+- Seasonal context: {seasonal_context}
+- Time context: {time_of_day}
 
-TONE: Be encouraging, specific, and use their actual numbers. Make it feel like you're talking directly to them about their specific habits.
+TONE: Be encouraging, specific, and creative. Make each tip feel unique and personally relevant. Consider the current season and time when making suggestions.
 
 Format each tip as a single line starting with ✅. Return only the 5 tips, one per line."""
+        
+        # Add more randomization to make responses even more varied
+        temperature = random.uniform(0.7, 0.9)  # Vary creativity level
         
         data = {
             "model": "deepseek/deepseek-chat",
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.8,
+            "temperature": temperature,
             "max_tokens": 600
         }
         
