@@ -2,7 +2,7 @@ import os
 from datetime import date, datetime, timezone, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from google_auth_oauthlib.flow import Flow
@@ -13,6 +13,8 @@ import json
 import concurrent.futures
 from typing import Dict, List, Tuple
 import time
+import re
+import html as html_lib
 from functools import lru_cache
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Boolean, Text, ForeignKey
@@ -95,6 +97,22 @@ templates = Jinja2Templates(directory="templates")
 # Simple in-memory cache for user data (cache for 5 minutes)
 user_cache = {}
 CACHE_DURATION = 300  # 5 minutes in seconds
+
+# Simple in-memory cache for news (10 minutes)
+NEWS_CACHE_TTL_SECONDS = 600
+news_cache = {"timestamp": 0, "items": []}
+
+# Public RSS/Atom sources relevant to carbon emissions and climate news
+NEWS_SOURCES = [
+    # Aggregators
+    "https://news.google.com/rss/search?q=carbon+emissions+OR+greenhouse+gases+OR+net+zero+when:7d&hl=en-US&gl=US&ceid=US:en",
+    # Specialist outlets
+    "https://www.carbonbrief.org/feed/",
+    "https://www.iea.org/feeds/news.rss",
+    "https://www.ipcc.ch/feed/",
+    "https://climate.nasa.gov/news/rss.xml",
+    "https://www.unep.org/rss.xml",
+]
 
 CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -971,6 +989,153 @@ def challenges(request: Request):
     # User not logged in, redirect to home
     return RedirectResponse("/")
 
+@app.get("/learning")
+def learning(request: Request):
+    """Learning page with carbon emission news"""
+    # Check if user is logged in via cookie
+    access_token = request.cookies.get("access_token")
+    
+    if access_token:
+        # User is logged in, get data from token
+        user_data = get_user_data_from_token(access_token)
+        if user_data:
+            return templates.TemplateResponse("learning.html", {
+                "request": request,
+                **user_data
+            })
+    
+    # User not logged in, redirect to home
+    return RedirectResponse("/")
+
+def _clean_html(text: str) -> str:
+    if not text:
+        return ""
+    # Very lightweight HTML stripper + entity decode for descriptions from RSS
+    stripped = re.sub(r"<[^>]+>", "", text)
+    unescaped = html_lib.unescape(stripped)
+    # Collapse nbsp and excessive whitespace
+    unescaped = unescaped.replace("\xa0", " ").replace("\u00a0", " ")
+    return re.sub(r"\s+", " ", unescaped).strip()
+
+def _normalize_category(title: str, summary: str) -> str:
+    content = f"{title} {summary}".lower()
+    if any(k in content for k in ["policy", "regulation", "law", "eu ets", "cop", "minister", "government"]):
+        return "policy"
+    if any(k in content for k in ["research", "study", "scientist", "evidence", "peer-reviewed", "nature", "science", "ipcc"]):
+        return "science"
+    if any(k in content for k in ["technology", "tech", "solar", "wind", "battery", "ev", "capture", "ccs", "dac"]):
+        return "technology"
+    if any(k in content for k in ["business", "company", "corporate", "market", "investment", "industry"]):
+        return "business"
+    return "other"
+
+def _extract_image_url(entry) -> str:
+    """Try to extract a thumbnail/image URL from various RSS fields."""
+    # media:thumbnail or media:content
+    media_thumb = entry.get("media_thumbnail") or entry.get("media_content")
+    if isinstance(media_thumb, list) and media_thumb:
+        for m in media_thumb:
+            url = m.get("url") if isinstance(m, dict) else None
+            if url and isinstance(url, str) and url.startswith("http"):
+                return url
+
+    # Enclosure links
+    links = entry.get("links", [])
+    if isinstance(links, list):
+        for link in links:
+            if isinstance(link, dict) and link.get("type", "").startswith("image") and link.get("href"):
+                return link["href"]
+
+    # Look for <img src> in summary/content
+    for key in ("summary", "description", "content"):
+        value = entry.get(key)
+        if isinstance(value, list) and value:
+            # content can be list of dicts with 'value'
+            for v in value:
+                html_val = v.get("value") if isinstance(v, dict) else str(v)
+                if html_val and isinstance(html_val, str):
+                    m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html_val, re.IGNORECASE)
+                    if m:
+                        return m.group(1)
+        elif isinstance(value, str):
+            m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', value, re.IGNORECASE)
+            if m:
+                return m.group(1)
+
+    return ""
+
+RELEVANT_KEYWORDS = [
+    # Core terms
+    "carbon", "emission", "emissions", "co2", "greenhouse", "ghg", "climate",
+    "net zero", "net-zero", "decarbon", "low-carbon", "carbon-neutral", "carbon neutral",
+    # Solutions
+    "renewable", "solar", "wind", "battery", "ev", "electric vehicle",
+    "ccs", "carbon capture", "dac", "direct air capture", "methane", "sustainab",
+]
+
+@app.get("/api/news")
+def get_live_news():
+    """Fetch recent carbon-emissions related news from public RSS feeds with caching."""
+    current_time = int(time.time())
+    if current_time - news_cache["timestamp"] < NEWS_CACHE_TTL_SECONDS and news_cache["items"]:
+        return JSONResponse(content={"items": news_cache["items"], "cached": True})
+
+    aggregated: List[Dict] = []
+    # Import feedparser lazily to avoid adding startup cost if endpoint unused
+    try:
+        import feedparser  # type: ignore
+    except Exception:
+        return JSONResponse(status_code=500, content={"error": "Missing dependency feedparser. Please install it."})
+
+    for url in NEWS_SOURCES:
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:20]:
+                title = entry.get("title", "")
+                link = entry.get("link", "")
+                summary = _clean_html(entry.get("summary", entry.get("description", "")))
+                published = entry.get("published", entry.get("updated", ""))
+                source = feed.feed.get("title", "") if getattr(feed, "feed", None) else ""
+                category = _normalize_category(title, summary)
+
+                if not title or not link:
+                    continue
+
+                content_lc = f"{title} {summary}".lower()
+                if not any(k in content_lc for k in RELEVANT_KEYWORDS):
+                    # Skip items that are not clearly about emissions/sustainability
+                    continue
+
+                aggregated.append({
+                    "title": title,
+                    "link": link,
+                    "summary": summary[:400] + ("…" if len(summary) > 400 else ""),
+                    "published": published,
+                    "source": source,
+                    "category": category,
+                    "image": _extract_image_url(entry),
+                })
+        except Exception:
+            # Ignore individual feed failures, continue with others
+            continue
+
+    # Basic de-dup by title/link
+    seen = set()
+    unique_items = []
+    for item in aggregated:
+        key = (item["title"].lower().strip(), item["link"].lower().strip())
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_items.append(item)
+
+    # Trim and cache
+    unique_items = unique_items[:60]
+    news_cache["timestamp"] = current_time
+    news_cache["items"] = unique_items
+
+    return {"items": unique_items, "cached": False}
+
 @app.post("/challenges/join/{challenge_id}")
 def join_challenge(challenge_id: int, request: Request):
     access_token = request.cookies.get("access_token")
@@ -1070,7 +1235,7 @@ async def update_challenge_progress(challenge_id: int, request: Request):
 
 # Admin functionality
 ADMIN_EMAILS = ["admin@zeroprint.com"]  # Add admin emails here
-ADMIN_PASSWORD = "admin123"  # Change this to a secure password
+ADMIN_PASSWORD = "admin"  # Change this to a secure password
 
 def is_admin_user(email: str) -> bool:
     """Check if user is an admin"""

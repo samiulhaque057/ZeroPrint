@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning - ZeroPrint</title>
+    <link rel="stylesheet" href="/static/learning.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Sidebar styles copied from dashboard.html for consistent look */
+        .sidebar {
+            width: 240px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            padding: 2rem 0;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .sidebar-header { padding: 0 1.5rem 2rem 1.5rem; border-bottom: 1px solid #f3f4f6; margin-bottom: 1rem; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.125rem; color: #111827; }
+        .sidebar-logo .logo-icon { width: 28px; height: 28px; background: #16a34a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.75rem; }
+        .sidebar-nav { padding: 0 0.75rem; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 0.75rem 0.875rem; margin-bottom: 0.5rem; border-radius: 8px; color: #6b7280; text-decoration: none; font-weight: 500; transition: all 0.2s ease; cursor: pointer; font-size: 0.875rem; }
+        .nav-item:hover { background: #f9fafb; color: #111827; }
+        .nav-item.active { background: #16a34a; color: white; }
+        .nav-item.active:hover { background: #15803d; }
+        .nav-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: relative; height: auto; border-right: none; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; }
+            .main-content { margin-left: 0 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% include 'sidebar.html' %}
+        <main class="main-content">
+            <div class="content-header">
+                <h1>Carbon Emission Learning Center</h1>
+                <p>Latest climate, policy, tech, and research news around emissions and net‑zero.</p>
+            </div>
+
+            <!-- Featured Article (latest news) -->
+            <div class="featured-article">
+                <div class="featured-content">
+                    <div class="featured-badge">Featured</div>
+                    <h2 id="featured-title">Loading latest news…</h2>
+                    <p id="featured-excerpt" class="featured-excerpt"></p>
+                    <div class="featured-meta">
+                        <span class="date" id="featured-date"><i class="fas fa-calendar"></i></span>
+                        <span class="read-time" id="featured-source"><i class="fas fa-clock"></i></span>
+                    </div>
+                    <a id="featured-link" class="read-more-btn" href="#" target="_blank" rel="noopener">Read Full Article</a>
+                </div>
+                <div class="featured-image">
+                    <img id="featured-image" alt="Featured" style="display:none;" />
+                    <div class="image-placeholder" id="featured-placeholder">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Latest carbon news</span>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <!-- News Grid (dynamic) -->
+            <div class="news-grid" id="news-grid">
+                <!-- Live news will be injected here -->
+            </div>
+
+            <!-- Load More Button -->
+            <div class="load-more-container">
+                <button class="load-more-btn">
+                    <i class="fas fa-plus"></i>
+                    Load More Articles
+                </button>
+            </div>
+
+            <!-- Newsletter Signup -->
+            <div class="newsletter-signup">
+                <div class="newsletter-content">
+                    <h3>Stay Updated</h3>
+                    <p>Get the latest carbon emission news and sustainability insights delivered to your inbox weekly.</p>
+                    <div class="newsletter-form">
+                        <input type="email" placeholder="Enter your email address" class="newsletter-input">
+                        <button class="newsletter-btn">Subscribe</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Bootstrapped user data for client-side rendering if needed
+        window.__USER__ = {
+            email: "{{ user_email if user_email else '' }}",
+            name: "{{ user_name if user_name else '' }}"
+        };
+    </script>
+    <script src="/static/learning.js"></script>
+</body>
+</html>
